@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from starlette.middleware.cors import CORSMiddleware
+
+from app.api.routers.auth import router as auth_router
 
 from app.core.config import settings
 from app.db.init_db import init_db
@@ -15,6 +17,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Store Backend", lifespan=lifespan)
+
+api_router = APIRouter(prefix="/api")
+
+api_router.include_router(auth_router)
+
+app.include_router(api_router)
 
 if settings.cors_origins:
     app.add_middleware(
