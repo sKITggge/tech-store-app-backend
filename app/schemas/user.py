@@ -1,19 +1,23 @@
 import uuid
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field, BeforeValidator
 
 from app.core.enums import UserRole
+from app.utils.string_methods import to_lower
+
+LowerEmail = Annotated[EmailStr, BeforeValidator(to_lower)]
 
 
 class UserCreate(BaseModel):
-    email: EmailStr
-    password: str
+    email: LowerEmail
+    password: Annotated[str, Field(min_length=8, max_length=128)]
 
 
 class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
+    email: LowerEmail
+    password: Annotated[str, Field(min_length=8, max_length=128)]
 
 
 class TokenResponse(BaseModel):
