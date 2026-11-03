@@ -1,7 +1,28 @@
+from contextlib import asynccontextmanager
+
 import uvicorn
 from fastapi import FastAPI
+from starlette.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="Store Backend")
+from app.core.config import settings
+from app.db.init_db import init_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="Store Backend", lifespan=lifespan)
+
+if settings.cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 @app.get("/")
