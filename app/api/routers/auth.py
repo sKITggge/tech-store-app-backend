@@ -9,6 +9,7 @@ from app.core.security import (
     verify_password,
 )
 from app.db.deps import get_db
+from app.models.cart import Cart
 from app.models.user import User
 from app.schemas.user import TokenResponse, UserCreate, UserLogin, UserRead
 
@@ -42,6 +43,8 @@ def register_user(
 
     db.add(user)
     db.flush()
+
+    user.cart = Cart()
 
     return TokenResponse(access_token=create_access_token(subject=user.id))
 
