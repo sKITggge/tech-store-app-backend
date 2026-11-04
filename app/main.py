@@ -10,11 +10,15 @@ from app.api.routers.cart import router as cart_router
 
 from app.core.config import settings
 from app.db.init_db import init_db
+from app.db.seed import seed_admin
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+
+    seed_admin()
+
     yield
 
 
