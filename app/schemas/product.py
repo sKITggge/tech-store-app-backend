@@ -15,12 +15,12 @@ Price = Annotated[
 
 
 class ProductCreate(BaseModel):
-    title: str
-    description: str
+    title: Annotated[str, Field(min_length=1, max_length=128)]
+    description: Annotated[str, Field(min_length=1)]
     price: Price
-    rating: float
+    rating: Annotated[float, Field(ge=0, le=5)]
     images: list[ImageCreate] = Field(min_length=3)
-    stock_quantity: int
+    stock_quantity: Annotated[int, Field(ge=0)]
 
     model_config = ConfigDict(extra="forbid")
 
@@ -39,11 +39,11 @@ class ProductRead(BaseModel):
 
 
 class ProductUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
+    title: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    description: Annotated[str, Field(min_length=1)] | None = None
     price: Price | None = None
-    rating: float | None = None
+    rating: Annotated[float, Field(ge=0, le=5)] | None = None
     images: list[ImageCreate] | None = Field(default=None, min_length=3)
-    stock_quantity: int | None = None
+    stock_quantity: Annotated[int, Field(ge=0)] | None = None
 
     model_config = ConfigDict(extra="forbid")

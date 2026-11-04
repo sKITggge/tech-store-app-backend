@@ -1,9 +1,11 @@
 import uuid
-from pydantic import BaseModel, ConfigDict
+from typing import Annotated
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ImageCreate(BaseModel):
-    url: str
+    url: Annotated[str, Field(min_length=1, max_length=255)]
 
     model_config = ConfigDict(extra="forbid")
 
