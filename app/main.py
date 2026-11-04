@@ -6,6 +6,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.api.routers.auth import router as auth_router
 from app.api.routers.catalog import router as catalog_router
+from app.api.routers.cart import router as cart_router
 
 from app.core.config import settings
 from app.db.init_db import init_db
@@ -23,6 +24,7 @@ api_router = APIRouter(prefix="/api")
 
 api_router.include_router(auth_router)
 api_router.include_router(catalog_router)
+api_router.include_router(cart_router)
 
 app.include_router(api_router)
 
