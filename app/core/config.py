@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 360
 
+    admin_email: str | None = None
+    admin_password: str | None = None
+
     cors_origins: list[str] = ["http://localhost:3000"]
 
 
