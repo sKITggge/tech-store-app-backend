@@ -7,6 +7,7 @@ from sqlalchemy import select
 from app.auth.deps import get_current_user
 from app.db.deps import get_db
 from app.models.cart import Cart, CartItem
+from app.models.product import Product
 from app.models.user import User
 from app.schemas.cart import CartItemRead, CartRead, CartItemUpdate, CartItemCreate, ApplyPromoRequest
 from app.utils.promo import get_discount_percentage
@@ -45,14 +46,14 @@ def get_cart(
 @router.post(
     "/items",
     response_model=CartItemRead,
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_201_CREATED,
     summary="Add product to current user's cart",
     description="Adds a product to the current user's cart or increases quantity if it already exists.",
 )
 def add_cart_item(
-    payload: CartItemCreate,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+        payload: CartItemCreate,
+        db: Session = Depends(get_db),
+        user: User = Depends(get_current_user),
 ):
     cart = db.execute(
         select(Cart).where(Cart.user_id == user.id)
@@ -64,6 +65,16 @@ def add_cart_item(
             detail="Cart not found",
         )
 
+    found_product = db.execute(
+        select(Product).where(Product.id == payload.product_id)
+    ).scalar_one_or_none()
+
+    if found_product is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found",
+        )
+
     found_cart_item = db.execute(
         select(CartItem)
         .where(
@@ -71,6 +82,14 @@ def add_cart_item(
             CartItem.product_id == payload.product_id,
         )
     ).scalar_one_or_none()
+
+    new_quantity = payload.quantity + (found_cart_item.quantity if found_cart_item else 0)
+
+    if found_product.stock_quantity < new_quantity:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Product quantity exceeds stock quantity",
+        )
 
     if found_cart_item is not None:
         found_cart_item.quantity += payload.quantity
@@ -116,6 +135,12 @@ def update_product(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Cart item not found",
+        )
+
+    if payload.quantity > found_cart_item.product.stock_quantity:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Product quantity exceeds stock quantity",
         )
 
     data = payload.model_dump(exclude_unset=True)
