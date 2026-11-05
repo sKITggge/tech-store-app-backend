@@ -5,9 +5,11 @@ from decimal import Decimal
 from fastapi import APIRouter, HTTPException, status, Query, Depends
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import select, func, or_
+from starlette.responses import Response
 
 from app.auth.deps import require_admin
 from app.core.enums import SortBy, Order
+from app.db.cache import build_products_cache_key, invalidate_products_cache, get_cached, set_cached
 from app.db.deps import get_db
 from app.models.image import Image
 from app.models.product import Product
@@ -39,6 +41,21 @@ def get_products(
         order: Order = Order.asc,
         db: Session = Depends(get_db),
 ):
+    cache_key = build_products_cache_key(
+        page=page,
+        limit=limit,
+        search=search,
+        min_price=min_price,
+        max_price=max_price,
+        min_rating=min_rating,
+        sort_by=sort_by,
+        order=order,
+    )
+
+    cached_data = get_cached(cache_key)
+    if cached_data:
+        return Response(content=cached_data, media_type="application/json")
+
     query = select(Product).where(
         Product.price.between(min_price, max_price),
         Product.rating >= min_rating,
@@ -74,7 +91,7 @@ def get_products(
 
     total_pages = math.ceil(total_items / limit) if total_items > 0 else 1
 
-    return PaginatedResponse(
+    response = PaginatedResponse(
         items=[ProductRead.model_validate(product) for product in products],
         meta=PaginationMeta(
             total_items=total_items,
@@ -83,6 +100,10 @@ def get_products(
             limit=limit,
         ),
     )
+
+    set_cached(cache_key, response)
+
+    return response
 
 
 @router.get(
@@ -128,7 +149,10 @@ def add_product(
         images=[Image(url=image.url) for image in item.images],
     )
     db.add(product)
-    db.flush()
+
+    db.commit()
+    invalidate_products_cache()
+
     db.refresh(product)
 
     return ProductRead.model_validate(product)
@@ -164,7 +188,9 @@ def update_product(
     if images is not None:
         found_product.images = [Image(url=image["url"]) for image in images]
 
-    db.flush()
+    db.commit()
+    invalidate_products_cache()
+
     db.refresh(found_product)
 
     return ProductRead.model_validate(found_product)
@@ -189,3 +215,6 @@ def delete_product(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
 
     db.delete(found_product)
+
+    db.commit()
+    invalidate_products_cache()
