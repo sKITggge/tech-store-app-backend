@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     admin_email: str | None = None
     admin_password: str | None = None
 
+    redis_url: str = "redis://localhost:6379"
+    cache_ttl: int = 120
+
     cors_origins: list[str] = ["http://localhost:3000"]
 
 
